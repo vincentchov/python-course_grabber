@@ -1,5 +1,6 @@
 import json
 import pathlib
+from urllib.request import urlretrieve
 from selenium import webdriver
 from secrets import username, password
 from selenium.webdriver.common.by import By
@@ -86,5 +87,34 @@ def video_links_from_file(filename):
             video_links = json.load(json_data)
 
         return video_links
+
+
+def clean_filename(filename):
+    """ Replaces illegal characters from filenames with underscores. """
+    keep_chars = (' ', '.', '_', '-')
+    chars = [c if c.isalnum() or c in keep_chars else '_' for c in filename]
+    return "".join(chars).rstrip()
+
+
+def download_all_videos(list_of_lectures, dest_folder):
+    """ Takes the JSON and runs wget on all of the links. """
+    pathlib.Path(dest_folder).mkdir(parents=True, exist_ok=True)
+    length = len(list_of_lectures)
+    i = 1
+    for pair in list_of_lectures:
+        filename = "{}.mp4".format(clean_filename(pair[0]))
+        url = pair[1]
+        print("({}/{}) Downloading '{}' as '{}'".format(i, length,
+                                                        pair[0], filename))
+        urlretrieve(url, "{}/{}".format(dest_folder, filename))
+        i += 1
+
+    print("Done!")
+
+
+def download_from_json(filename, dest_folder):
+    """ Downloads all videos from an existing JSON file. """
+    links = video_links_from_file(filename)
+    download_all_videos(links, dest_folder)
 
 
