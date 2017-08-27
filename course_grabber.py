@@ -1,4 +1,5 @@
 import json
+import pathlib
 from selenium import webdriver
 from secrets import username, password
 from selenium.webdriver.common.by import By
@@ -10,6 +11,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 def get_video_links():
+    """ Use Selenium to grab the direct links lecture videos """
     caps = DesiredCapabilities.CHROME
     caps['loggingPrefs'] = {'performance': 'ALL'}
     driver = webdriver.Chrome(desired_capabilities=caps)
@@ -77,8 +79,12 @@ def video_links_to_file(filename):
 
 def video_links_from_file(filename):
     """ Reads the JSON file that's already been populated. """
-    with open(filename) as json_data:
-        video_links = json.load(json_data)
-    return video_links
+    if not pathlib.Path(filename).is_file():
+        raise IOError("{} does not exist...".format(filename))
+    else:
+        with open(filename) as json_data:
+            video_links = json.load(json_data)
+
+        return video_links
 
 
