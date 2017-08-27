@@ -1,0 +1,2 @@
+selenium==3.5.0
+urllib3==1.22
