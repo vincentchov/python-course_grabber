@@ -14,17 +14,17 @@ def get_video_links():
     caps = DesiredCapabilities.CHROME
     caps['loggingPrefs'] = {'performance': 'ALL'}
     driver = webdriver.Chrome(desired_capabilities=caps)
-    
+
     login_page_url = "http://training.talkpython.fm/account/login"
     driver.get(login_page_url)
     username_form = driver.find_element_by_id("username")
     password_form = driver.find_element_by_id("password")
-    
+
     username_form.send_keys(username)
     password_form.send_keys(password)
-    
+
     driver.find_element_by_id("account-login").submit()
-    
+
     # Once logged-in, go to the course page
     try:
         element = WebDriverWait(driver, 10).until(
@@ -34,15 +34,15 @@ def get_video_links():
         # Visit the course page and pair up each lecture title with
         # their links
         course_page_url = (
-            "https://training.talkpython.fm/courses/details/" + 
+            "https://training.talkpython.fm/courses/details/" +
             "python-for-entrepreneurs-build-and-launch-your-online-business"
         )
         driver.get(course_page_url)
         rows = driver.find_elements_by_class_name("lecture-link")
         lectures = [(row.text, row.get_property('href')) for row in rows]
-    
+
     videos = []
-    
+
     for lecture in lectures:
         # Visit each lecture and pair up the lecture title with the video's
         # direct link
@@ -55,7 +55,7 @@ def get_video_links():
             )
         finally:
             logs = driver.get_log('performance')
-            
+
             for obj in logs:
                 if "http://player.vimeo.com/external/" in obj['message']:
                     print("{}".format(lecture_name))
@@ -114,5 +114,3 @@ def download_from_json(filename, dest_folder):
     """ Downloads all videos from an existing JSON file. """
     links = video_links_from_file(filename)
     download_all_videos(links, dest_folder)
-
-
