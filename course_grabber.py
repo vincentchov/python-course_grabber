@@ -69,12 +69,11 @@ def get_video_links_mkennedy():
     return videos
 
 
-caps = DesiredCapabilities.CHROME
-caps['loggingPrefs'] = {'performance': 'ALL'}
-driver = webdriver.Chrome(desired_capabilities=caps)
-
 def get_video_links_udemy():
     """ Use Selenium to grab the direct links lecture videos """
+    caps = DesiredCapabilities.CHROME
+    caps['loggingPrefs'] = {'performance': 'ALL'}
+    driver = webdriver.Chrome(desired_capabilities=caps)
     login_page_url = "http://udemy.com"
     driver.get(login_page_url)
     driver.find_element_by_css_selector((
@@ -112,7 +111,7 @@ def get_video_links_udemy():
         )
         driver.get(course_page_url)
         
-    # Once you're on the course page, get all the lecture rows
+    # Once you're on the course page, get all the lecture's names
     try:
         element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((
@@ -134,28 +133,39 @@ def get_video_links_udemy():
 
     lectures = []
     
-    rows = [[row.text.split("\n")[0], row] for row in rows]
-#    for i, current_lecture in enumerate(rows):
-#        if i == 0:
-#            title_area = driver.find_elements_by_class_name("course-info__title")
-#            title = title_area.get_attribute("textContent")
-#            current_lecture[1].click()
-#            current_lecture[1] = driver.current_url
-#        else:
-#            next_button = driver.find_element_by_id("continue-to-next-curriculum-item")
-#            if next_button.get_attribute("textContent") == current_lecture[0]:
-#                current_lecture[1].click()
-#                current_lecture[1] = driver.current_url
-#        
-#        lectures.append(current_lecture)
-#        print("[{0}, {0}]".format(current_lecture))
-#    
-#    print(json.dumps(lectures, indent=4, sort_keys=True))
-#    with open("udemy_links.json", "w") as links:
-#        links.write(lectures)
-#
-#    driver.close()
-#    print("Done grabbing the video links!")
+    lecture_names = [row.text.split("\n")[0] for row in rows]
+    for current_lecture in lecture_names:
+        # Refresh the links each time, visiting each video by lecture name
+        # and recording their Udemy links
+        driver.get(course_page_url)
+        try:
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((
+                    By.CSS_SELECTOR,
+                    '.curriculum-navigation__section'
+                ))
+            )
+        finally:
+            # Show all lectures and get them all
+            sections = driver.find_elements_by_css_selector("[ng-click*=setOpenAll]")
+            for section in sections:
+                if "all sections" in section.text.lower():
+                    section.click()
+            
+        link_names = (
+            driver.find_elements_by_class_name("lecture__item__link__name")
+        )
+        link_pairs = [[x.get_attribute("textContent"), x] for x in link_names]
+
+        title = current_lecture
+        link_pair = [x for x in link_pairs if x[0] in title]
+        link_pair[0][1].click()
+        link = driver.current_url
+
+        lectures.append([title, link])
+
+    driver.close()
+    print("Done grabbing the video links!")
     return lectures
 
 
@@ -200,9 +210,80 @@ def download_all_videos(list_of_lectures, dest_folder):
     print("Done!")
 
 
+def download_udemy_videos(list_of_lectures, dest_folder):
+    """ Takes the JSON and runs wget on all of the links. """
+    caps = DesiredCapabilities.CHROME
+    caps['loggingPrefs'] = {'performance': 'ALL'}
+    driver = webdriver.Chrome(desired_capabilities=caps)
+    login_page_url = "http://udemy.com"
+    driver.get(login_page_url)
+    driver.find_element_by_css_selector((
+        "#udemy > div.c_header.c_header--v6.c_header--desktop.ud-angular-" +
+        "loader.js-hellobar > div.c_header__inner > div.c_header__right >" +
+        " div.dropdown.dropdown--login > require-auth > div > a"
+    )).click()
+
+    try:
+        element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "id_email"))
+        )
+    finally:
+        username_form = driver.find_element_by_id("id_email")
+        password_form = driver.find_element_by_id("id_password")
+
+        username_form.send_keys(udemy_username)
+        password_form.send_keys(udemy_password)
+
+        driver.find_element_by_id("submit-id-submit").submit()
+
+    # Once logged-in, go to the course page
+    try:
+        element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                '//*[@id="udemy"]/div[2]/div[1]/div[4]/div[2]/div/div[1]/a'
+            ))
+        )
+    finally:
+        # Visit the course page and pair up each lecture title with
+        # their links
+        course_page_url = (
+            "https://www.udemy.com/basic-dance-moves-for-guys/learn/v4/content"
+        )
+        driver.get(course_page_url)
+
+    pathlib.Path(dest_folder).mkdir(parents=True, exist_ok=True)
+    length = len(list_of_lectures)
+    i = 1
+    for pair in list_of_lectures:
+        driver.get(pair[1])
+        try:
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "vjs-play-progress"))
+            )
+        finally:
+            logs = driver.get_log('performance')
+
+            for obj in logs:
+                if "https://udemy-assets-on-demand2.udemy.com" in obj['message']:
+                    print("{}".format(lecture_name))
+                    url_json = json.loads(obj['message'])['message']
+                    direct_link = url_json['params']['request']['url']
+                    break
+
+            filename = "{}.mp4".format(clean_filename(pair[0]))
+            url = direct_link
+            print("({}/{}) Downloading '{}' as '{}'".format(i, length,
+                                                            pair[0], filename))
+            urlretrieve(url, "{}/{}".format(dest_folder, filename))
+            i += 1
+
+    print("Done!")
+
+
 def download_from_json(filename, dest_folder):
     """ Downloads all videos from an existing JSON file. """
     links = video_links_from_file(filename)
     download_all_videos(links, dest_folder)
 
-rows = get_video_links_udemy()
+get_video_links_udemy()
