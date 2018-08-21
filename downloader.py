@@ -3,6 +3,10 @@ import pathlib
 from urllib.request import urlretrieve
 
 
+Course = namedtuple("Event", ["name", "url", "videos"])
+Video = namedtuple("Video", ["name", "url"])
+
+
 def clean_filename(filename):
     """ Replaces illegal characters from filenames with underscores. """
     keep_chars = (' ', '.', '_', '-')
@@ -15,11 +19,12 @@ def download_all_videos(list_of_lectures, dest_folder):
     pathlib.Path(dest_folder).mkdir(parents=True, exist_ok=True)
     length = len(list_of_lectures)
     i = 1
-    for pair in list_of_lectures:
-        filename = "{}.mp4".format(clean_filename(pair[0]))
-        url = pair[1]
+    for video in list_of_lectures:
+        title = video.title
+        filename = "{}.mp4".format(clean_filename(title))
+        url = pair.url
         print("({}/{}) Downloading '{}' as '{}'".format(i, length,
-                                                        pair[0], filename))
+                                                        title, filename))
         urlretrieve(url, "{}/{}".format(dest_folder, filename))
         i += 1
 
@@ -44,6 +49,6 @@ def video_links_from_file(filename):
         raise IOError("{} does not exist...".format(filename))
     else:
         with open(filename) as json_data:
-            video_links = json.load(json_data)
+            video_links = [Video(x[0], x[1]) for in json.load(json_data)]
 
         return video_links

@@ -2,6 +2,8 @@ import json
 import pathlib
 from selenium import webdriver
 from secrets import username, password
+from downloader import Course
+from downloader import Video
 from downloader import clean_filename
 from downloader import download_all_videos
 from downloader import download_from_json
@@ -43,15 +45,15 @@ def get_video_links():
         )
         driver.get(course_page_url)
         rows = driver.find_elements_by_class_name("lecture-link")
-        lectures = [(row.text, row.get_property('href')) for row in rows]
+        lectures = [Video(row.text, row.get_property('href')) for row in rows]
 
     videos = []
 
     for lecture in lectures:
         # Visit each lecture and pair up the lecture title with the video's
         # direct link
-        lecture_title = lecture[0]
-        lecture_link = lecture[1]
+        lecture_title = lecture.title
+        lecture_link = lecture.url
         driver.get(lecture_link)
         try:
             element = WebDriverWait(driver, 10).until(
@@ -65,7 +67,7 @@ def get_video_links():
                     print("{}".format(lecture_name))
                     url_json = json.loads(obj['message'])['message']
                     direct_link = url_json['params']['request']['url']
-                    videos.append((lecture_title, direct_link))
+                    videos.append(Video(lecture_title, direct_link))
                     break
 
     driver.close()
