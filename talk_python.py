@@ -15,13 +15,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
-def get_video_links():
+def init_chrome_driver():
     """ Use Selenium to grab the direct links lecture videos """
     caps = DesiredCapabilities.CHROME
     caps['loggingPrefs'] = {'performance': 'ALL'}
     driver = webdriver.Chrome(desired_capabilities=caps)
 
-    login_page_url = "http://training.talkpython.fm/account/login"
+    return driver
+
+
+def get_video_links(driver, course_page_url, login_page):
     driver.get(login_page_url)
     username_form = driver.find_element_by_id("username")
     password_form = driver.find_element_by_id("password")
@@ -39,10 +42,6 @@ def get_video_links():
     finally:
         # Visit the course page and pair up each lecture title with
         # their links
-        course_page_url = (
-            "https://training.talkpython.fm/courses/details/" +
-            "python-for-entrepreneurs-build-and-launch-your-online-business"
-        )
         driver.get(course_page_url)
         rows = driver.find_elements_by_class_name("lecture-link")
         lectures = [Video(row.text, row.get_property('href')) for row in rows]
@@ -76,5 +75,11 @@ def get_video_links():
 
 
 if __name__ == "__main__":
-    links = get_video_links()
+    login_page_url = "http://training.talkpython.fm/account/login"
+    course_page_url = (
+        "https://training.talkpython.fm/courses/details/" +
+        "python-for-entrepreneurs-build-and-launch-your-online-business"
+    )
+    driver = init_chrome_driver()
+    links = get_video_links(driver, course_page_url, login_page)
     download_all_videos(links)
