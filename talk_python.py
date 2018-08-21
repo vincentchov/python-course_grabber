@@ -1,7 +1,7 @@
 import json
 import pathlib
 from selenium import webdriver
-from secrets import username, password
+from secrets import talk_python_secrets
 from downloader import Course
 from downloader import Video
 from downloader import clean_filename
@@ -15,6 +15,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
+username = talk_python_secrets["username"]
+password = talk_python_secrets["password"]
+
+
 def init_chrome_driver():
     """ Use Selenium to grab the direct links lecture videos """
     caps = DesiredCapabilities.CHROME
@@ -24,7 +28,7 @@ def init_chrome_driver():
     return driver
 
 
-def get_video_links(driver, course_page_url, login_page):
+def login(driver, login_page_url):
     driver.get(login_page_url)
     username_form = driver.find_element_by_id("username")
     password_form = driver.find_element_by_id("password")
@@ -34,6 +38,8 @@ def get_video_links(driver, course_page_url, login_page):
 
     driver.find_element_by_id("account-login").submit()
 
+
+def get_video_links(driver, course_page_url):
     # Once logged-in, go to the course page
     try:
         element = WebDriverWait(driver, 10).until(
@@ -81,5 +87,6 @@ if __name__ == "__main__":
         "python-for-entrepreneurs-build-and-launch-your-online-business"
     )
     driver = init_chrome_driver()
-    links = get_video_links(driver, course_page_url, login_page)
+    login(driver, login_page_url)
+    links = get_video_links(driver, course_page_url)
     download_all_videos(links)
