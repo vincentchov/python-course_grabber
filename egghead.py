@@ -82,15 +82,19 @@ def download(course):
     download_all_videos(direct_links, filename)
 
 
-if __name__ == "__main__":
-    login_page_url = "https://egghead.io/users/sign_in"
-    course_url = (
-        "https://egghead.io/courses/json-web-token-jwt"
-        "-authentication-with-node-js-and-auth0"
-    )
-    driver = init_driver()
+def download_course_by_url(course_url):
     login(driver, login_page_url)
     course = get_course_video_pages(driver, course_url)
     video_links_to_file(course.videos,
                         "{}.json".format(clean_filename(course.name)))
     # download(course)
+
+
+if __name__ == "__main__":
+    login_page_url = "https://egghead.io/users/sign_in"
+    driver = init_driver()
+    course_url = (
+        "https://egghead.io/courses/json-web-token-jwt"
+        "-authentication-with-node-js-and-auth0"
+    )
+    download_course_by_url(course_url)
